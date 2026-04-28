@@ -30,11 +30,48 @@ python -m btc_bot.fetch_data --exchange kraken --symbol BTC/USD --timeframe 5m -
 python -m btc_bot.backtest --csv data/btc_usd_5m.csv
 ```
 
+The default strategy uses a 200-period hourly regime EMA, so it needs at least 9 days of data before it can take trades. For a quick smoke test on a smaller file:
+
+```powershell
+python -m btc_bot.backtest --csv data/btc_usd_5m.csv --regime-ema 20 --diagnostics
+```
+
+If the fetch command appears stuck, it should now print each step. A quick smoke test is:
+
+```powershell
+python -m btc_bot.fetch_data --exchange kraken --symbol BTC/USD --timeframe 5m --days 1 --output data/btc_usd_5m.csv
+```
+
 Notes:
 
 - Kraken uses `BTC/USD`.
 - Binance-style venues often use `BTC/USDT`.
 - Fetched CSVs in `data/` are ignored by Git except for the tiny sample file.
+
+## Fetch Deeper Binance Archive Data
+
+Kraken and other exchange APIs can be shallow. For deeper 5-minute spot history, use Binance's public monthly archive files:
+
+```powershell
+python -m btc_bot.fetch_binance_vision --symbol BTCUSDT --interval 5m --start 2024-01 --end 2024-12 --output data/btcusdt_5m_2024.csv
+python -m btc_bot.backtest --csv data/btcusdt_5m_2024.csv --diagnostics
+```
+
+This archive uses `BTCUSDT`, so it is best treated as BTC/USDT research data rather than exact BTC/USD execution data.
+
+## Try A More Active Research Pass
+
+The default strategy is intentionally defensive and may trade rarely. To test whether the idea has more signal with looser gates:
+
+```powershell
+python -m btc_bot.backtest --csv data/btcusdt_5m_2024.csv --regime-ema 50 --fast-ema 10 --slow-ema 30 --min-rsi 48 --max-rsi 80 --volume-window 1 --max-holding-bars 72 --diagnostics
+```
+
+The strongest 2024 research pass so far uses 15-minute signals, a 4-hour regime, pullback entries, ATR expansion, and lower maker-style costs:
+
+```powershell
+python -m btc_bot.backtest --csv data/btcusdt_5m_2024.csv --signal-timeframe 15min --regime-timeframe 4h --regime-ema 50 --fast-ema 10 --slow-ema 30 --min-rsi 48 --max-rsi 80 --volume-window 1 --max-holding-bars 144 --max-losses 999 --entry-mode pullback --min-atr-expansion 1.05 --fee-hurdle-multiple 2 --fee-rate 0.0002 --slippage-bps 0.5 --trades-output data/trades_15m_4h_pullback_maker_2024.csv --diagnostics
+```
 
 ## CSV Format
 

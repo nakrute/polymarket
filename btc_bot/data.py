@@ -22,8 +22,10 @@ def load_candles(path: str | Path) -> pd.DataFrame:
     numeric_columns = ["open", "high", "low", "close", "volume"]
     candles[numeric_columns] = candles[numeric_columns].apply(pd.to_numeric, errors="raise")
 
-    if (candles[numeric_columns] <= 0).any().any():
-        raise ValueError("OHLCV values must be positive")
+    if (candles[["open", "high", "low", "close"]] <= 0).any().any():
+        raise ValueError("OHLC prices must be positive")
+    if (candles["volume"] < 0).any():
+        raise ValueError("Volume cannot be negative")
 
     return candles
 
